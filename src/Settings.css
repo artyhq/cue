@@ -1,0 +1,442 @@
+@import "./theme.css";
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--page-bg) !important;
+  color: var(--text-primary);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+.settings-shell {
+  height: 100%;
+  background: var(--page-bg);
+}
+
+.settings {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 20px 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  user-select: none;
+  overflow-y: auto;
+}
+
+section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--card-bg);
+  border: 1px solid var(--separator);
+  border-radius: 12px;
+}
+
+.segmented.two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.segmented button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  height: 32px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.segmented button.on {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field > span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.select-wrap,
+.path {
+  background: var(--card-bg);
+  border: 1px solid var(--separator);
+  border-radius: 12px;
+}
+
+.select-wrap {
+  position: relative;
+}
+
+.select-wrap::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--text-secondary);
+  border-bottom: 1.5px solid var(--text-secondary);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+select {
+  appearance: none;
+  width: 100%;
+  height: 38px;
+  padding: 0 32px 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+.meter {
+  height: 4px;
+  border-radius: 99px;
+  background: var(--meter-track);
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: var(--meter-fill);
+  transition: transform 80ms linear;
+}
+
+.hint {
+  margin: -2px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.path-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.path {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip-btn,
+.text-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.chip-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--control-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.chip-btn:hover,
+.text-btn:hover {
+  background: var(--control-bg-hover);
+}
+
+.text-btn {
+  align-self: flex-start;
+  padding: 4px 8px;
+  margin-left: -8px;
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.footer {
+  margin-top: auto;
+  margin-bottom: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preset-chip {
+  appearance: none;
+  border: 1px solid var(--separator);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 99px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.preset-chip.on {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: transparent;
+}
+
+.preset-chip.add {
+  width: 32px;
+  padding: 0;
+  color: var(--text-secondary);
+}
+
+.name-btn,
+.name-input {
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.name-btn {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.name-btn span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.name-input {
+  height: 36px;
+  border-radius: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--separator);
+  padding: 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.channels {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.channel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--separator);
+  border-radius: 14px;
+}
+
+.channel.on {
+  border-color: var(--ring);
+}
+
+.channel-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.channel-copy strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.channel-copy em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.toggle {
+  appearance: none;
+  width: 40px;
+  height: 24px;
+  border: 0;
+  border-radius: 99px;
+  background: var(--control-bg);
+  padding: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle span {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 160ms ease;
+}
+
+.toggle.on {
+  background: #34c759;
+}
+
+.toggle.on span {
+  transform: translateX(16px);
+}
+
+.icon-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.add-app {
+  appearance: none;
+  border: 1px dashed var(--separator);
+  background: transparent;
+  color: var(--text-primary);
+  height: 40px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.app-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--separator);
+  border-radius: 14px;
+}
+
+.picker-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.app-row {
+  appearance: none;
+  border: 0;
+  background: var(--control-bg);
+  color: var(--text-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.app-row span {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.danger,
+.danger-text {
+  color: #ff3b30;
+}
+
+.shortcut-btn {
+  appearance: none;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--separator);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.shortcut-btn.listening {
+  border-color: var(--ring);
+  color: var(--text-secondary);
+  font-weight: 500;
+}

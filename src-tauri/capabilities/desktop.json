@@ -1,0 +1,9 @@
+{
+  "identifier": "desktop-capability",
+  "platforms": ["macOS", "windows", "linux"],
+  "windows": ["overlay", "settings"],
+  "permissions": [
+    "core:default",
+    "global-shortcut:default"
+  ]
+}

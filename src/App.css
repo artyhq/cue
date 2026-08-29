@@ -1,0 +1,299 @@
+:root {
+  --bg-color: rgba(255, 255, 255, 0.65);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --text-color: #1a1a1a;
+  --dot-color: #ff3b30;
+  --bar-color: rgba(0, 0, 0, 0.25);
+  --chip-bg: rgba(0, 0, 0, 0.06);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  --success: #34c759;
+  --key-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 245, 247, 0.78));
+  --key-border: rgba(0, 0, 0, 0.08);
+  --key-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 0 rgba(0, 0, 0, 0.05), 0 2px 5px rgba(0, 0, 0, 0.06);
+  --key-shadow-pressed: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+  --fuse: #34c759;
+  --fuse-track: rgba(52, 199, 89, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-color: rgba(30, 30, 30, 0.7);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --text-color: #ffffff;
+    --bar-color: rgba(255, 255, 255, 0.35);
+    --chip-bg: rgba(255, 255, 255, 0.1);
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    --key-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07));
+    --key-border: rgba(255, 255, 255, 0.12);
+    --key-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 0 rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.28);
+    --key-shadow-pressed: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+    --fuse-track: rgba(52, 199, 89, 0.22);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg-color: rgba(30, 30, 30, 0.7);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --text-color: #ffffff;
+  --bar-color: rgba(255, 255, 255, 0.35);
+  --chip-bg: rgba(255, 255, 255, 0.1);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --key-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07));
+  --key-border: rgba(255, 255, 255, 0.12);
+  --key-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 0 rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.28);
+  --key-shadow-pressed: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  --fuse-track: rgba(52, 199, 89, 0.22);
+}
+
+:root[data-theme="light"] {
+  --bg-color: rgba(255, 255, 255, 0.65);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --text-color: #1a1a1a;
+  --bar-color: rgba(0, 0, 0, 0.25);
+  --chip-bg: rgba(0, 0, 0, 0.06);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: transparent !important;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+#root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes enterPill {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.pill-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 64px;
+  border-radius: 22px;
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  padding: 0 20px;
+  gap: 16px;
+  cursor: pointer;
+  user-select: none;
+  animation: enterPill 380ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pill-container.is-saved {
+  cursor: default;
+  gap: 12px;
+  padding: 0 14px 0 16px;
+}
+
+.pill-container.is-leaving {
+  animation: leavePill 320ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes leavePill {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+}
+
+.pill-timer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.pill-timer-track,
+.pill-timer-fuse {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.pill-timer-track {
+  stroke: var(--fuse-track);
+}
+
+.pill-timer-fuse {
+  stroke: var(--fuse);
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.record-dot {
+  width: 12px;
+  height: 12px;
+  background-color: var(--dot-color);
+  border-radius: 50%;
+  animation: pulse 2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+.waveform {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+}
+
+.bar {
+  width: 2px;
+  background-color: var(--bar-color);
+  border-radius: 1px;
+  height: 4px; /* initial height, manipulated by JS */
+  will-change: height;
+  transition: height 50ms ease-out;
+}
+
+.time {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+  font-variant-numeric: tabular-nums;
+  min-width: 42px; /* to prevent layout shift */
+  text-align: center;
+}
+
+.chip {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+  background-color: var(--chip-bg);
+  padding: 5px 12px;
+  border-radius: 12px;
+  user-select: none;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  animation: enterSaved 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes enterSaved {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.saved-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.saved-mark svg {
+  display: block;
+}
+
+.saved-mark path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.error-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff9f0a;
+  flex-shrink: 0;
+}
+
+.saved-text {
+  color: var(--text-color);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.saved-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 2px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border-color);
+}
+
+.keycap {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 7px;
+  border: 1px solid var(--key-border);
+  background: var(--key-bg);
+  box-shadow: var(--key-shadow);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 90ms ease, box-shadow 90ms ease, background 90ms ease;
+}
+
+.keycap:focus {
+  outline: none;
+}
+
+.keycap:focus-visible {
+  box-shadow: var(--key-shadow), 0 0 0 3px var(--fuse-track);
+}
+
+.keycap:hover {
+  transform: translateY(-0.5px);
+}
+
+.keycap:active,
+.keycap.is-pressed {
+  transform: translateY(1px);
+  box-shadow: var(--key-shadow-pressed);
+}

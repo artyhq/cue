@@ -2,11 +2,12 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for Cue windows",
-  "windows": ["overlay", "settings"],
+  "windows": ["overlay", "settings", "onboarding"],
   "permissions": [
     "core:default",
     "core:window:allow-hide",
     "core:window:allow-show",
+    "core:window:allow-close",
     "core:window:allow-set-focus",
     "core:window:allow-set-theme",
     "core:event:default",

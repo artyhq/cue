@@ -5,6 +5,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { applyTheme } from "./theme";
 import DevToolkit from "./DevToolkit";
+import "./App.css";
+import "./Settings.css";
+import "./Onboarding.css";
+import "./DevToolkit.css";
 
 type SettingsPayload = { theme: string };
 
@@ -18,15 +22,20 @@ listen<SettingsPayload>("cue://settings-changed", (event) => {
 
 const root = document.getElementById("root") as HTMLElement;
 const label = getCurrentWebviewWindow().label;
+document.documentElement.dataset.window = label;
 
-const module =
-  label === "settings" ? import("./Settings") : import("./App");
+const page =
+  label === "settings"
+    ? import("./Settings")
+    : label === "onboarding"
+      ? import("./Onboarding")
+      : import("./App");
 
-module.then(({ default: Page }) => {
+page.then(({ default: Page }) => {
   ReactDOM.createRoot(root).render(
     <React.StrictMode>
       <Page />
-      <DevToolkit />
+      {label === "settings" ? <DevToolkit /> : null}
     </React.StrictMode>,
   );
 });

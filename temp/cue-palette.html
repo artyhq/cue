@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Cue — Color System</title>
+<style>
+  :root {
+    --font-mono: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+    --font-sans: -apple-system, 'Inter', 'Segoe UI', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    padding: 48px 56px 96px;
+    transition: background .35s ease, color .35s ease;
+    min-height: 100vh;
+  }
+
+  body.light { background: #FCFBFA; color: #211C18; }
+  body.dark  { background: #131110; color: #F2EDE9; }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 56px;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .brand svg { width: 34px; height: 34px; flex-shrink: 0; }
+
+  h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .sub {
+    font-size: 12px;
+    opacity: 0.5;
+    margin-top: 2px;
+    font-weight: 400;
+  }
+
+  .toggle {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  body.light .toggle { background: #EFEAE4; }
+  body.dark .toggle { background: #221E1B; }
+
+  .toggle button {
+    border: none;
+    background: transparent;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    opacity: 0.55;
+    transition: all .2s ease;
+    color: inherit;
+  }
+  .toggle button.active {
+    opacity: 1;
+    font-weight: 600;
+  }
+  body.light .toggle button.active { background: #FCFBFA; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  body.dark .toggle button.active { background: #363029; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+
+  .scale-block { margin-bottom: 44px; }
+
+  .scale-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .scale-name {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .scale-desc {
+    font-size: 11.5px;
+    opacity: 0.48;
+    font-family: var(--font-mono);
+  }
+
+  .swatch-row {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 3px;
+    margin-top: 10px;
+  }
+
+  .swatch {
+    aspect-ratio: 1 / 1.18;
+    border-radius: 5px;
+    position: relative;
+    cursor: default;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 6px 7px;
+    overflow: hidden;
+  }
+
+  .swatch .step {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity .15s ease;
+  }
+  .swatch .hex {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    opacity: 0;
+    transition: opacity .15s ease;
+    white-space: nowrap;
+  }
+  .swatch:hover .step, .swatch:hover .hex { opacity: 0.85; }
+
+  .role-strip {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 3px;
+    margin-top: 3px;
+  }
+  .role-strip span {
+    font-size: 8.5px;
+    font-family: var(--font-mono);
+    opacity: 0.38;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .note {
+    font-size: 12.5px;
+    line-height: 1.6;
+    opacity: 0.62;
+    max-width: 640px;
+    margin: 56px 0 0;
+    padding-top: 24px;
+    border-top: 1px solid;
+  }
+  body.light .note { border-color: #E7E1D9; }
+  body.dark .note { border-color: #2A2521; }
+
+  .note b { opacity: 1; font-weight: 600; }
+
+  .status-demo {
+    display: flex;
+    gap: 28px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .status-item { text-align: center; }
+  .status-item svg { width: 30px; height: 30px; }
+  .status-item div { font-size: 10.5px; font-family: var(--font-mono); opacity: 0.55; margin-top: 8px; }
+</style>
+</head>
+<body class="light">
+
+<div class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 100 100" fill="none" id="logo-mark">
+      <path d="M 78 50 A 28 28 0 1 1 62 25" stroke="currentColor" stroke-width="9" stroke-linecap="round"/>
+      <path d="M 68 20 L 82 32 L 66 40 Z" fill="currentColor"/>
+    </svg>
+    <div>
+      <h1>CUE — Color System</h1>
+      <div class="sub">Neutral (sumi‑ink) + 4 semantic scales · 12 steps · light / dark</div>
+    </div>
+  </div>
+  <div class="toggle">
+    <button class="active" data-theme="light">light</button>
+    <button data-theme="dark">dark</button>
+  </div>
+</div>
+
+<div id="scales"></div>
+
+<div class="note">
+  <p><b>Логика подтона.</b> Neutral несёт тёплый sumi‑ink оттенок (hue ~40°), едва заметный в светлых шагах и раскрывающийся в тёмных — как тушь на бумаге. Warning использует тот же тёплый hue, что и neutral, но с гораздо большей насыщенностью — отличие читается через chroma, а не через смену тона.</p>
+  <p style="margin-top:10px"><b>Логика насыщенности по семантике.</b> Error и Warning — «тревожные» состояния, им дана более высокая chroma (сигнал должен цеплять). Success и WoV/Listening — «спокойные» состояния (подтверждение, фоновое прослушивание), им намеренно занижена chroma, чтобы они не соревновались с error/warning за внимание.</p>
+  <p style="margin-top:10px"><b>Роли шагов</b> (Radix‑style, одинаковы для всех шкал): 1–2 фон приложения, 3–5 фон элементов UI (default/hover/active), 6–8 границы (subtle/default/hover), 9–10 solid‑заливка (кнопки/индикаторы, default/hover), 11–12 текст (низкий/высокий контраст).</p>
+</div>
+
+<script>
+const scales = [
+  { key: 'neutral', name: 'Neutral / Sumi‑ink', hueL: 40, hueD: 38, satMax: 11, satMaxD: 16 },
+  { key: 'error',   name: 'Error', hueL: 9,  hueD: 9,  satMax: 62, satMaxD: 58 },
+  { key: 'warning', name: 'Warning', hueL: 42, hueD: 44, satMax: 70, satMaxD: 62 },
+  { key: 'success', name: 'Success', hueL: 148, hueD: 150, satMax: 40, satMaxD: 38 },
+  { key: 'wov',     name: 'WoV / Listening', hueL: 218, hueD: 220, satMax: 42, satMaxD: 40 },
+];
+
+const roles = ['app bg','subtle bg','ui bg','ui hover','ui active','border subtle','border','border hover','solid','solid hover','text low','text high'];
+
+const lightL = [99, 97.4, 95, 92, 88.3, 84, 77.3, 67.5, 54, 47, 37, 16];
+const lightSshape = [0.12, 0.22, 0.32, 0.42, 0.52, 0.62, 0.72, 0.85, 1.0, 0.94, 0.82, 0.5];
+
+const darkL = [9.5, 12.5, 16, 19.5, 23.5, 29, 36, 45.5, 55, 60.5, 72, 95];
+const darkSshape = [0.42, 0.46, 0.5, 0.54, 0.58, 0.62, 0.66, 0.76, 1.0, 0.94, 0.78, 0.42];
+
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const toHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`.toUpperCase();
+}
+
+function buildScale(scale, theme) {
+  const hue = theme === 'light' ? scale.hueL : scale.hueD;
+  const satMax = theme === 'light' ? scale.satMax : scale.satMaxD;
+  const Lramp = theme === 'light' ? lightL : darkL;
+  const Sshape = theme === 'light' ? lightSshape : darkSshape;
+  return Lramp.map((l, i) => {
+    const s = satMax * Sshape[i];
+    return { hsl: `hsl(${hue}, ${s.toFixed(1)}%, ${l}%)`, hex: hslToHex(hue, s, l) };
+  });
+}
+
+function render(theme) {
+  const container = document.getElementById('scales');
+  container.innerHTML = '';
+  scales.forEach(scale => {
+    const steps = buildScale(scale, theme);
+    const block = document.createElement('div');
+    block.className = 'scale-block';
+    block.innerHTML = `
+      <div class="scale-header">
+        <div class="scale-name">${scale.name}</div>
+        <div class="scale-desc">hue ${theme === 'light' ? scale.hueL : scale.hueD}° · sat max ${theme === 'light' ? scale.satMax : scale.satMaxD}%</div>
+      </div>
+      <div class="swatch-row">
+        ${steps.map((s, i) => `
+          <div class="swatch" style="background:${s.hsl}; color:${i > 6 ? (theme==='light' ? '#fff' : '#111') : (theme==='light' ? '#111' : '#fff')}">
+            <span class="step">${i + 1}</span>
+            <span class="hex">${s.hex}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="role-strip">
+        ${roles.map(r => `<span>${r}</span>`).join('')}
+      </div>
+    `;
+    container.appendChild(block);
+  });
+
+  // status demo using WoV/Error/Success/neutral scales
+  const neutral = buildScale(scales[0], theme);
+  const error = buildScale(scales[1], theme);
+  const success = buildScale(scales[3], theme);
+  const wov = buildScale(scales[4], theme);
+
+  const demoWrap = document.createElement('div');
+  demoWrap.className = 'scale-block';
+  demoWrap.innerHTML = `
+    <div class="scale-header"><div class="scale-name">Пример: статусы иконки трея на палитре</div></div>
+    <div class="status-demo">
+      ${statusIcon('Idle', neutral[6].hex, 0.4)}
+      ${statusIcon('WoV', wov[8].hex, 1)}
+      ${statusIcon('Recording', neutral[11].hex, 1)}
+      ${statusIcon('Success', success[8].hex, 1)}
+      ${statusIcon('Error', error[8].hex, 1)}
+    </div>
+  `;
+  container.appendChild(demoWrap);
+}
+
+function statusIcon(label, color, opacity) {
+  return `
+    <div class="status-item">
+      <svg viewBox="0 0 100 100" fill="none" style="opacity:${opacity}">
+        <path d="M 78 50 A 28 28 0 1 1 62 25" stroke="${color}" stroke-width="9" stroke-linecap="round"/>
+        <path d="M 68 20 L 82 32 L 66 40 Z" fill="${color}"/>
+      </svg>
+      <div>${label}</div>
+    </div>
+  `;
+}
+
+document.querySelectorAll('.toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.toggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const theme = btn.dataset.theme;
+    document.body.className = theme;
+    document.getElementById('logo-mark').style.color = theme === 'light' ? '#211C18' : '#F2EDE9';
+    render(theme);
+  });
+});
+
+document.getElementById('logo-mark').style.color = '#211C18';
+render('light');
+</script>
+
+</body>
+</html>

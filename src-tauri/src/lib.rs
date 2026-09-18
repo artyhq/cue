@@ -34,17 +34,38 @@ pub(crate) fn focus_overlay(app: &tauri::AppHandle) {
     let Some(window) = app.get_webview_window("overlay") else {
         return;
     };
-    let _ = window.set_focus();
+    let _ = window.unminimize();
+    let _ = window.show();
     #[cfg(windows)]
     {
-        use windows::Win32::UI::WindowsAndMessaging::SetForegroundWindow;
+        use windows::Win32::Foundation::HWND;
+        use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
+        use windows::Win32::UI::WindowsAndMessaging::{
+            AllowSetForegroundWindow, BringWindowToTop, GetForegroundWindow,
+            GetWindowThreadProcessId, SetForegroundWindow, ShowWindow, ASFW_ANY, SW_SHOW,
+        };
         if let Ok(raw) = window.hwnd() {
-            let hwnd = windows::Win32::Foundation::HWND(raw.0 as *mut _);
+            let hwnd = HWND(raw.0 as *mut _);
             unsafe {
-                let _ = SetForegroundWindow(hwnd);
+                let _ = AllowSetForegroundWindow(ASFW_ANY);
+                let foreground = GetForegroundWindow();
+                let fg_tid = GetWindowThreadProcessId(foreground, None);
+                let our_tid = GetCurrentThreadId();
+                if fg_tid != 0 && fg_tid != our_tid {
+                    let _ = AttachThreadInput(fg_tid, our_tid, true);
+                    let _ = SetForegroundWindow(hwnd);
+                    let _ = BringWindowToTop(hwnd);
+                    let _ = ShowWindow(hwnd, SW_SHOW);
+                    let _ = AttachThreadInput(fg_tid, our_tid, false);
+                } else {
+                    let _ = SetForegroundWindow(hwnd);
+                    let _ = BringWindowToTop(hwnd);
+                    let _ = ShowWindow(hwnd, SW_SHOW);
+                }
             }
         }
     }
+    let _ = window.set_focus();
 }
 
 #[tauri::command]
@@ -153,6 +174,30 @@ fn show_settings(app: &tauri::AppHandle) {
     }
 }
 
+fn show_onboarding_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("onboarding") {
+        settings::apply_theme(app, &settings::current(app).theme);
+        let _ = window.unminimize();
+        let _ = window.center();
+        let _ = window.show();
+        let _ = window.set_focus();
+        let _ = window.emit("onboarding-shown", ());
+    }
+}
+
+#[tauri::command]
+fn show_onboarding(app: tauri::AppHandle) {
+    show_onboarding_window(&app);
+}
+
+#[tauri::command]
+fn complete_onboarding(app: tauri::AppHandle) {
+    settings::mark_onboarded(&app);
+    if let Some(window) = app.get_webview_window("onboarding") {
+        let _ = window.hide();
+    }
+}
+
 fn toggle_overlay(app: &tauri::AppHandle) {
     if audio::is_recording(app) {
         set_arming(app, false);
@@ -189,7 +234,13 @@ fn should_toggle(app: &tauri::AppHandle) -> bool {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let loaded = settings::load();
     tauri::Builder::default()
+        .manage(settings::SettingsState(Mutex::new(loaded.clone())))
+        .manage(audio::AudioState(Mutex::new(None)))
+        .manage(audio::MonitorState(Mutex::new(None)))
+        .manage(LastToggle(Mutex::new(None)))
+        .manage(Arming(AtomicBool::new(false)))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -214,18 +265,10 @@ pub fn run() {
                 })
                 .build(),
         )
-        .setup(|app| {
-            let loaded = settings::load();
+        .setup(move |app| {
             settings::apply_theme(app.handle(), &loaded.theme);
             settings::apply_runtime(app.handle(), &loaded);
-            app.manage(settings::SettingsState(Mutex::new(loaded.clone())));
-            app.manage(audio::AudioState(Mutex::new(None)));
-            app.manage(audio::MonitorState(Mutex::new(None)));
-            app.manage(LastToggle(Mutex::new(None)));
-            app.manage(Arming(AtomicBool::new(false)));
-            
             vosk_recognizer::init(app.handle());
-            vosk_recognizer::update(app.handle());
 
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let show_i = MenuItem::with_id(app, "show", "Record / Stop", true, None::<&str>)?;
@@ -265,7 +308,13 @@ pub fn run() {
                 .shortcut
                 .parse()
                 .or_else(|_| settings::default_shortcut().parse())?;
-            app.global_shortcut().register(shortcut)?;
+            if let Err(e) = app.global_shortcut().register(shortcut) {
+                eprintln!("Couldn't register shortcut: {e}");
+            }
+
+            if settings::needs_onboarding(&loaded) {
+                show_onboarding_window(app.handle());
+            }
 
             Ok(())
         })
@@ -284,6 +333,11 @@ pub fn run() {
                         let _ = window.hide();
                         api.prevent_close();
                     }
+                    "onboarding" => {
+                        settings::mark_onboarded(window.app_handle());
+                        let _ = window.hide();
+                        api.prevent_close();
+                    }
                     _ => {}
                 }
             }
@@ -295,6 +349,8 @@ pub fn run() {
             cancel_recording_cmd,
             settings::get_settings,
             settings::update_settings,
+            show_onboarding,
+            complete_onboarding,
             settings::pick_output_dir,
             settings::open_output_dir,
             settings::reveal_saved,
@@ -304,6 +360,11 @@ pub fn run() {
             audio::start_input_monitor,
             audio::stop_input_monitor,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            if let tauri::RunEvent::Ready = event {
+                vosk_recognizer::update(app);
+            }
+        });
 }

@@ -34,19 +34,35 @@ fn start(app: &AppHandle) {
     let manager = app.state::<VoskManager>();
     let mut state = manager.0.lock().unwrap();
     if state.thread_handle.is_some() {
-        return; // Already running
+        return;
     }
-    
+
     let stop_signal = Arc::new(AtomicBool::new(false));
     state.stop_signal = stop_signal.clone();
-    
     let app_handle = app.clone();
-    
-    state.thread_handle = Some(thread::spawn(move || {
-        if let Err(e) = run_vosk(app_handle, stop_signal) {
-            eprintln!("Vosk error: {}", e);
-        }
-    }));
+
+    match thread::Builder::new()
+        .name("cue-vosk".into())
+        .stack_size(16 * 1024 * 1024)
+        .spawn(move || {
+            #[cfg(windows)]
+            unsafe {
+                let _ = windows::Win32::System::Com::CoInitializeEx(
+                    None,
+                    windows::Win32::System::Com::COINIT_MULTITHREADED,
+                );
+            }
+            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                run_vosk(app_handle, stop_signal)
+            })) {
+                Ok(Ok(())) => {}
+                Ok(Err(e)) => eprintln!("Vosk error: {e}"),
+                Err(_) => eprintln!("Vosk thread panicked"),
+            }
+        }) {
+        Ok(handle) => state.thread_handle = Some(handle),
+        Err(e) => eprintln!("Failed to start voice listener: {e}"),
+    }
 }
 
 fn stop(app: &AppHandle) {
@@ -179,9 +195,16 @@ fn run_vosk(app: AppHandle, stop: Arc<AtomicBool>) -> Result<(), String> {
     
     while !stop.load(Ordering::Relaxed) {
         if let Ok(data) = rx.recv_timeout(std::time::Duration::from_millis(100)) {
-            // flatten since `data` is `Vec<Vec<i16>>` from the resampler ...
-            // wait, `convert` returns `Vec<i16>`, so `data` is `Vec<i16>`.
-            let state = recognizer.accept_waveform(&data);
+            if data.is_empty() {
+                continue;
+            }
+            let mut state = Ok(vosk::DecodingState::Running);
+            for chunk in data.chunks(4000) {
+                if chunk.is_empty() {
+                    continue;
+                }
+                state = recognizer.accept_waveform(chunk);
+            }
             
             // Check partial results for faster response
             let partial = recognizer.partial_result();

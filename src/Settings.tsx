@@ -3,7 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { applyTheme, type ThemeName } from "./theme";
 import { isSfxEnabled, setSfxEnabled } from "./sfx";
-import "./Settings.css";
 
 type AudioDevice = {
   id: string;
@@ -37,6 +36,8 @@ type SettingsData = {
   indicator: string;
   launchAtLogin: boolean;
   wakeOnVoice: boolean;
+  onboarded: boolean;
+  onboardingVersion: number;
 };
 
 type PlayingApp = {
@@ -556,7 +557,7 @@ export default function Settings() {
               <em>Say "cue start recording" or "cue stop recording". Downloads a ~50MB voice model on first use.</em>
             </div>
           </div>
-          <p className="hint danger-text" style={{ marginTop: '8px' }}>
+          <p className="hint warning-text" style={{ marginTop: '8px' }}>
             Warning: Always-on listening will use more battery.
           </p>
         </section>

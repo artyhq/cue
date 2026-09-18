@@ -1,65 +1,107 @@
+/**
+ * Semantic color tokens.
+ *
+ * Primitives (--neutral-1 … --wov-12) are injected from palette.ts.
+ * Light/dark swap those primitives; aliases below stay the same, except
+ * --ink / --paper which always mean "darkest" / "lightest".
+ */
+
 :root {
   color-scheme: light dark;
-  --page-bg: #f5f5f7;
-  --card-bg: #ffffff;
-  --text-primary: #1d1d1f;
-  --text-secondary: #6e6e73;
-  --separator: rgba(0, 0, 0, 0.08);
-  --control-bg: rgba(0, 0, 0, 0.04);
-  --control-bg-hover: rgba(0, 0, 0, 0.07);
-  --accent: #1d1d1f;
-  --accent-text: #ffffff;
-  --ring: rgba(0, 0, 0, 0.12);
-  --meter-track: rgba(0, 0, 0, 0.08);
-  --meter-fill: #1d1d1f;
+
+  /* Neutral surfaces, lines, fills, type */
+  --bg: var(--neutral-1);
+  --bg-subtle: var(--neutral-2);
+  --bg-ui: var(--neutral-3);
+  --bg-hover: var(--neutral-4);
+  --bg-active: var(--neutral-5);
+  --border-subtle: var(--neutral-6);
+  --border: var(--neutral-7);
+  --border-hover: var(--neutral-8);
+  --solid: var(--neutral-9);
+  --solid-hover: var(--neutral-10);
+  --fg-muted: var(--neutral-11);
+  --fg: var(--neutral-12);
+
+  /* Absolute ends of the ink scale (do not follow text inversion) */
+  --ink: var(--neutral-12);
+  --paper: var(--neutral-1);
+
+  /* Error */
+  --error-bg: var(--error-3);
+  --error-border: var(--error-6);
+  --error: var(--error-9);
+  --error-hover: var(--error-10);
+  --error-fg: var(--error-11);
+
+  /* Warning — same warm hue as ink, louder chroma */
+  --warning-bg: var(--warning-3);
+  --warning-border: var(--warning-6);
+  --warning: var(--warning-9);
+  --warning-hover: var(--warning-10);
+  --warning-fg: var(--warning-11);
+
+  /* Success — quiet confirmation */
+  --success-bg: var(--success-3);
+  --success-border: var(--success-6);
+  --success: var(--success-9);
+  --success-hover: var(--success-10);
+  --success-fg: var(--success-11);
+  --success-track: color-mix(in srgb, var(--success) 22%, transparent);
+
+  /* WoV / listening — quiet accent */
+  --wov-bg: var(--wov-3);
+  --wov-border: var(--wov-6);
+  --wov: var(--wov-9);
+  --wov-hover: var(--wov-10);
+  --wov-fg: var(--wov-11);
+
+  /* Selection (ink stamp) */
+  --accent: var(--ink);
+  --accent-fg: var(--paper);
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px color-mix(in srgb, var(--ink) 18%, transparent);
+  --shadow-md: 0 4px 12px color-mix(in srgb, var(--ink) 16%, transparent);
+  --shadow-lg: 0 8px 24px color-mix(in srgb, var(--ink) 22%, transparent);
+
+  /* Overlay pill — frosted paper over the desktop */
+  --overlay-bg: color-mix(in srgb, var(--bg) 80%, transparent);
+  --overlay-border: color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  --overlay-shadow: 0 4px 24px color-mix(in srgb, var(--ink) 14%, transparent);
+
+  /* Recording indicator — high-contrast ink, per palette tray demo */
+  --record: var(--fg);
+  --waveform: var(--solid);
+
+  /* Keycaps */
+  --key-bg: linear-gradient(180deg, var(--bg-subtle), var(--bg-ui));
+  --key-border: var(--border-subtle);
+  --key-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--paper) 55%, transparent),
+    0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent),
+    0 2px 5px color-mix(in srgb, var(--ink) 8%, transparent);
+  --key-shadow-pressed: inset 0 1px 2px color-mix(in srgb, var(--ink) 14%, transparent);
+
+  --focus-ring: color-mix(in srgb, var(--wov) 32%, transparent);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --page-bg: #000000;
-    --card-bg: #1c1c1e;
-    --text-primary: #f5f5f7;
-    --text-secondary: #86868b;
-    --separator: rgba(255, 255, 255, 0.1);
-    --control-bg: rgba(255, 255, 255, 0.08);
-    --control-bg-hover: rgba(255, 255, 255, 0.12);
-    --accent: #f5f5f7;
-    --accent-text: #1d1d1f;
-    --ring: rgba(255, 255, 255, 0.14);
-    --meter-track: rgba(255, 255, 255, 0.1);
-    --meter-fill: #f5f5f7;
+    --ink: var(--neutral-1);
+    --paper: var(--neutral-12);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page-bg: #000000;
-  --card-bg: #1c1c1e;
-  --text-primary: #f5f5f7;
-  --text-secondary: #86868b;
-  --separator: rgba(255, 255, 255, 0.1);
-  --control-bg: rgba(255, 255, 255, 0.08);
-  --control-bg-hover: rgba(255, 255, 255, 0.12);
-  --accent: #f5f5f7;
-  --accent-text: #1d1d1f;
-  --ring: rgba(255, 255, 255, 0.14);
-  --meter-track: rgba(255, 255, 255, 0.1);
-  --meter-fill: #f5f5f7;
+  --ink: var(--neutral-1);
+  --paper: var(--neutral-12);
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --page-bg: #f5f5f7;
-  --card-bg: #ffffff;
-  --text-primary: #1d1d1f;
-  --text-secondary: #6e6e73;
-  --separator: rgba(0, 0, 0, 0.08);
-  --control-bg: rgba(0, 0, 0, 0.04);
-  --control-bg-hover: rgba(0, 0, 0, 0.07);
-  --accent: #1d1d1f;
-  --accent-text: #ffffff;
-  --ring: rgba(0, 0, 0, 0.12);
-  --meter-track: rgba(0, 0, 0, 0.08);
-  --meter-fill: #1d1d1f;
+  --ink: var(--neutral-12);
+  --paper: var(--neutral-1);
 }

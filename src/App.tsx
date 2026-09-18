@@ -2,53 +2,23 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { Check, CircleAlert, X } from "lucide-react";
 import { playSfx, preloadSfx, attachSfxUnlock, setSfxEnabled } from "./sfx";
-import "./theme.css";
-import "./App.css";
+import "./theme";
 
-const BAR_COUNT = 48;
+const BAR_COUNT = 22;
 const DISMISS_MS = 4000;
+const LEAVE_MS = 280;
 
 type SavedFile = { filename: string; path: string };
 
-const Waveform = ({ isRecording }: { isRecording: boolean }) => {
-  const [levels, setLevels] = useState<number[]>(() => Array(BAR_COUNT).fill(0));
-
-  useEffect(() => {
-    let cancelled = false;
-    let unlisten: UnlistenFn | undefined;
-
-    listen<number[]>("cue://levels", (event) => {
-      setLevels(event.payload);
-    }).then((fn) => {
-      if (cancelled) fn();
-      else unlisten = fn;
-    });
-
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, []);
-
-  return (
-    <div className="waveform">
-      {levels.map((level, i) => {
-        const boosted = Math.min(1, Math.sqrt(Math.max(0, level)) * 1.8);
-        const height = isRecording ? Math.min(24, Math.max(4, 4 + boosted * 20)) : 4;
-        return <div key={i} className="bar" style={{ height: `${height}px` }} />;
-      })}
-    </div>
-  );
-};
-
-function pillPath(width: number, height: number, radius: number) {
+function pillPath(width: number, height: number) {
   const inset = 1.5;
   const x = inset;
   const y = inset;
-  const w = Math.max(radius * 2, width - inset * 2);
-  const h = Math.max(radius * 2, height - inset * 2);
-  const r = Math.min(radius, h / 2, w / 2);
+  const w = Math.max(height, width - inset * 2);
+  const h = Math.max(8, height - inset * 2);
+  const r = h / 2;
   return [
     `M ${x + w / 2} ${y}`,
     `H ${x + w - r}`,
@@ -63,6 +33,39 @@ function pillPath(width: number, height: number, radius: number) {
   ].join(" ");
 }
 
+const Waveform = ({ isRecording }: { isRecording: boolean }) => {
+  const [levels, setLevels] = useState<number[]>(() => Array(BAR_COUNT).fill(0));
+
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: UnlistenFn | undefined;
+
+    listen<number[]>("cue://levels", (event) => {
+      const next = event.payload.slice(-BAR_COUNT);
+      while (next.length < BAR_COUNT) next.unshift(0);
+      setLevels(next);
+    }).then((fn) => {
+      if (cancelled) fn();
+      else unlisten = fn;
+    });
+
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
+
+  return (
+    <div className="waveform" aria-hidden="true">
+      {levels.map((level, i) => {
+        const boosted = Math.min(1, Math.sqrt(Math.max(0, level)) * 1.8);
+        const height = isRecording ? Math.min(16, Math.max(3, 3 + boosted * 13)) : 3;
+        return <div key={i} className="bar" style={{ height: `${height}px` }} />;
+      })}
+    </div>
+  );
+};
+
 function App() {
   // TASK: update tray icon for listening state (e.g. tray-listening.png) when settings.wakeOnVoice is true
   const [time, setTime] = useState(0);
@@ -71,11 +74,12 @@ function App() {
   const [saved, setSaved] = useState<SavedFile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [presetName, setPresetName] = useState("Voice");
-  const [progress, setProgress] = useState(1);
   const [leaving, setLeaving] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [pressedKey, setPressedKey] = useState<"o" | "p" | null>(null);
-  const [pillSize, setPillSize] = useState({ w: 260, h: 64 });
+  const [enterGen, setEnterGen] = useState(0);
+  const [progress, setProgress] = useState(1);
+  const [pillSize, setPillSize] = useState({ w: 180, h: 44 });
 
   const pillRef = useRef<HTMLDivElement>(null);
   const savedRef = useRef<SavedFile | null>(null);
@@ -85,6 +89,7 @@ function App() {
   const liveRef = useRef(false);
   const timerWarnedRef = useRef(false);
   const armGenRef = useRef(0);
+  const leaveTimerRef = useRef<number>(0);
   savedRef.current = saved;
   errorRef.current = error;
 
@@ -95,8 +100,8 @@ function App() {
     setSaved(null);
     setError(null);
     setLeaving(false);
-    setProgress(1);
     setHovered(false);
+    setProgress(1);
     leavingRef.current = false;
     liveRef.current = false;
     timerWarnedRef.current = false;
@@ -105,15 +110,27 @@ function App() {
     remainingRef.current = DISMISS_MS;
   }, []);
 
-  const dismiss = useCallback((reason: "timeout" | "escape" | "action" = "timeout") => {
-    if (leavingRef.current) return;
-    leavingRef.current = true;
-    if (reason !== "action") playSfx("dismiss");
-    setLeaving(true);
-    window.setTimeout(() => {
-      void hideOverlay();
-    }, 320);
-  }, [hideOverlay]);
+  const beginLeave = useCallback(
+    (reason: "timeout" | "escape" | "action" | "cancel" = "timeout") => {
+      if (leavingRef.current) return;
+      leavingRef.current = true;
+      if (reason === "cancel") playSfx("recordCancel");
+      else if (reason !== "action") playSfx("dismiss");
+      setLeaving(true);
+      window.clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = window.setTimeout(() => {
+        void hideOverlay();
+      }, LEAVE_MS);
+    },
+    [hideOverlay],
+  );
+
+  const dismiss = useCallback(
+    (reason: "timeout" | "escape" | "action" = "timeout") => {
+      beginLeave(reason);
+    },
+    [beginLeave],
+  );
 
   const flashKey = (key: "o" | "p") => {
     setPressedKey(key);
@@ -148,13 +165,14 @@ function App() {
     dismiss("action");
   }, [dismiss]);
 
-  useEffect(() => {
-    if (!isRecording) return;
-    const interval = setInterval(() => {
-      setTime((t) => t + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isRecording]);
+  const cancelRecording = useCallback(
+    (event?: { stopPropagation(): void }) => {
+      event?.stopPropagation();
+      beginLeave("cancel");
+      void invoke("cancel_recording_cmd");
+    },
+    [beginLeave],
+  );
 
   useEffect(() => {
     if (!saved && !error) return;
@@ -167,8 +185,17 @@ function App() {
     sync();
     const observer = new ResizeObserver(sync);
     observer.observe(node);
+    node.focus({ preventScroll: true });
     return () => observer.disconnect();
   }, [saved, error]);
+
+  useEffect(() => {
+    if (!isRecording) return;
+    const interval = setInterval(() => {
+      setTime((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isRecording]);
 
   useEffect(() => {
     if ((!saved && !error) || hovered || leaving) return;
@@ -219,8 +246,8 @@ function App() {
       setError(null);
       setTime(0);
       setLeaving(false);
-      setProgress(1);
       setHovered(false);
+      setProgress(1);
     };
 
     const setup = async () => {
@@ -231,14 +258,16 @@ function App() {
           const gen = ++armGenRef.current;
           liveRef.current = false;
           leavingRef.current = false;
+          window.clearTimeout(leaveTimerRef.current);
           setArming(true);
           setIsRecording(false);
           setSaved(null);
           setError(null);
           setTime(0);
           setLeaving(false);
-          setProgress(1);
           setHovered(false);
+          setProgress(1);
+          setEnterGen((n) => n + 1);
           void (async () => {
             await playSfx("recordStart");
             if (gen !== armGenRef.current) return;
@@ -289,26 +318,27 @@ function App() {
           liveRef.current = false;
           timerWarnedRef.current = false;
           setIsRecording(false);
+          setArming(false);
           remainingRef.current = DISMISS_MS;
           leavingRef.current = false;
           setProgress(1);
           setLeaving(false);
+          setHovered(false);
           setSaved(event.payload);
           playSfx("recordStop");
           void getCurrentWebviewWindow().setFocus();
+          requestAnimationFrame(() => pillRef.current?.focus({ preventScroll: true }));
         }),
       );
 
       track(
-        await listen("cue://cancelled", async () => {
+        await listen("cue://cancelled", () => {
           liveRef.current = false;
           armGenRef.current += 1;
-          playSfx("recordCancel");
           setArming(false);
           setIsRecording(false);
           setSaved(null);
-          const win = getCurrentWebviewWindow();
-          await win.hide();
+          if (!leavingRef.current) beginLeave("cancel");
         }),
       );
 
@@ -327,6 +357,7 @@ function App() {
           setLeaving(false);
           setError(event.payload);
           void getCurrentWebviewWindow().setFocus();
+          requestAnimationFrame(() => pillRef.current?.focus({ preventScroll: true }));
         }),
       );
 
@@ -342,9 +373,10 @@ function App() {
     return () => {
       cancelled = true;
       detachUnlock();
+      window.clearTimeout(leaveTimerRef.current);
       unlistens.forEach((fn) => fn());
     };
-  }, []);
+  }, [beginLeave]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -374,13 +406,13 @@ function App() {
         return;
       }
       if (e.key === "Escape") {
-        void invoke("cancel_recording_cmd");
+        cancelRecording();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [dismiss, openFolder, playFile]);
+  }, [dismiss, openFolder, playFile, cancelRecording]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
@@ -395,8 +427,9 @@ function App() {
       dismiss("escape");
       return;
     }
+    if (saved) return;
     if (arming) {
-      await invoke("cancel_recording_cmd");
+      cancelRecording();
       return;
     }
     if (isRecording) {
@@ -406,20 +439,26 @@ function App() {
 
   const showingSaved = Boolean(saved) && !error;
   const showingNotice = showingSaved || Boolean(error);
+  const isLive = (arming || isRecording) && !showingNotice;
   const d = Math.max(0, progress) * 100;
 
   return (
     <div
+      key={enterGen}
       ref={pillRef}
+      tabIndex={-1}
       className={[
         "pill-container",
+        isLive ? "is-live" : "",
+        arming ? "is-arming" : "",
+        isRecording ? "is-recording" : "",
         showingNotice ? "is-saved" : "",
         leaving ? "is-leaving" : "",
       ]
         .filter(Boolean)
         .join(" ")}
       onClick={handlePillClick}
-      onMouseEnter={() => showingNotice && setHovered(true)}
+      onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       {showingSaved && (
@@ -430,10 +469,10 @@ function App() {
           viewBox={`0 0 ${pillSize.w} ${pillSize.h}`}
           aria-hidden="true"
         >
-          <path className="pill-timer-track" d={pillPath(pillSize.w, pillSize.h, 22)} />
+          <path className="pill-timer-track" d={pillPath(pillSize.w, pillSize.h)} />
           <path
             className="pill-timer-fuse"
-            d={pillPath(pillSize.w, pillSize.h, 22)}
+            d={pillPath(pillSize.w, pillSize.h)}
             pathLength={100}
             strokeDasharray={`${d} 100`}
           />
@@ -441,7 +480,9 @@ function App() {
       )}
       {error ? (
         <div className="saved-state">
-          <span className="error-mark" aria-hidden="true" />
+          <span className="error-mark" aria-hidden="true">
+            <CircleAlert size={14} strokeWidth={2.25} />
+          </span>
           <span className="saved-text" title={error}>
             {error}
           </span>
@@ -449,9 +490,7 @@ function App() {
       ) : saved ? (
         <div className="saved-state">
           <span className="saved-mark" aria-hidden="true">
-            <svg viewBox="0 0 20 20" width="18" height="18">
-              <path d="M5 10.4l3.1 3.1L15 6.7" />
-            </svg>
+            <Check size={14} strokeWidth={2.6} />
           </span>
           <span className="saved-text" title={saved.filename}>
             Saved
@@ -489,6 +528,22 @@ function App() {
           <Waveform key={isRecording ? "on" : "off"} isRecording={isRecording} />
           <div className="time">{formatTime(time)}</div>
           <div className="chip">{presetName}</div>
+          <div className="pill-reveal" aria-hidden={!hovered}>
+            <div className="pill-reveal-clip">
+              <div className="pill-reveal-cluster">
+                <span className="pill-reveal-rule" />
+                <button
+                  type="button"
+                  className="pill-icon-btn is-cancel"
+                  title="Cancel"
+                  aria-label="Cancel recording"
+                  onClick={cancelRecording}
+                >
+                  <X size={14} strokeWidth={2.4} />
+                </button>
+              </div>
+            </div>
+          </div>
         </>
       )}
     </div>

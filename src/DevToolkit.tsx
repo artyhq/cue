@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
-import './DevToolkit.css';
 
 export default function DevToolkit() {
   if (!import.meta.env.DEV) return null;
@@ -20,7 +20,7 @@ export default function DevToolkit() {
   };
 
   const testOnboarding = () => {
-    console.log("Testing onboarding... (todo)");
+    void invoke("show_onboarding");
   };
 
   return (

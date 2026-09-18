@@ -55,6 +55,21 @@ pub struct AppSettings {
     pub launch_at_login: bool,
     #[serde(default)]
     pub wake_on_voice: bool,
+    /// Missing from existing settings.json means the app has already been used.
+    #[serde(default = "default_onboarded")]
+    pub onboarded: bool,
+    #[serde(default)]
+    pub onboarding_version: u32,
+}
+
+pub const ONBOARDING_VERSION: u32 = 1;
+
+fn default_onboarded() -> bool {
+    true
+}
+
+pub fn needs_onboarding(settings: &AppSettings) -> bool {
+    settings.onboarding_version < ONBOARDING_VERSION
 }
 
 fn default_theme() -> String {
@@ -106,6 +121,8 @@ impl Default for AppSettings {
             indicator: default_indicator(),
             launch_at_login: false,
             wake_on_voice: false,
+            onboarded: false,
+            onboarding_version: 0,
         }
     }
 }
@@ -124,6 +141,8 @@ pub struct SettingsView {
     pub indicator: String,
     pub launch_at_login: bool,
     pub wake_on_voice: bool,
+    pub onboarded: bool,
+    pub onboarding_version: u32,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -181,10 +200,8 @@ fn save(settings: &AppSettings) -> Result<(), String> {
 }
 
 pub fn current(app: &AppHandle) -> AppSettings {
-    app.state::<SettingsState>()
-        .0
-        .lock()
-        .map(|g| g.clone())
+    app.try_state::<SettingsState>()
+        .and_then(|state| state.0.lock().ok().map(|g| g.clone()))
         .unwrap_or_default()
 }
 
@@ -213,6 +230,8 @@ pub fn to_view(settings: &AppSettings) -> SettingsView {
         indicator: settings.indicator.clone(),
         launch_at_login: settings.launch_at_login,
         wake_on_voice: settings.wake_on_voice,
+        onboarded: settings.onboarded,
+        onboarding_version: settings.onboarding_version,
     }
 }
 
@@ -328,9 +347,27 @@ pub fn apply_theme(app: &AppHandle, theme: &str) {
         "dark" => Some(Theme::Dark),
         _ => None,
     };
-    if let Some(window) = app.get_webview_window("settings") {
-        let _ = window.set_theme(native);
+    for label in ["settings", "onboarding"] {
+        if let Some(window) = app.get_webview_window(label) {
+            let _ = window.set_theme(native);
+        }
     }
+}
+
+pub fn mark_onboarded(app: &AppHandle) {
+    let mut settings = current(app);
+    if settings.onboarded && settings.onboarding_version >= ONBOARDING_VERSION {
+        return;
+    }
+    settings.onboarded = true;
+    settings.onboarding_version = ONBOARDING_VERSION;
+    if save(&settings).is_err() {
+        return;
+    }
+    if let Ok(mut guard) = app.state::<SettingsState>().0.lock() {
+        *guard = settings.clone();
+    }
+    let _ = app.emit("cue://settings-changed", to_view(&settings));
 }
 
 #[tauri::command]
@@ -375,7 +412,13 @@ pub fn apply_runtime(app: &AppHandle, settings: &AppSettings) {
 #[tauri::command]
 pub fn update_settings(app: AppHandle, settings: AppSettings) -> Result<SettingsView, String> {
     let previous = current(&app);
-    let settings = normalize(settings);
+    let mut settings = normalize(settings);
+    if previous.onboarded {
+        settings.onboarded = true;
+    }
+    if previous.onboarding_version > settings.onboarding_version {
+        settings.onboarding_version = previous.onboarding_version;
+    }
     apply_shortcut(&app, &previous.shortcut, &settings.shortcut)?;
     apply_autostart(&app, settings.launch_at_login);
     save(&settings)?;
